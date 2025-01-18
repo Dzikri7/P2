@@ -1,31 +1,81 @@
 const express = require("express");
 const ErrorHandler = require("./middleware/error");
-const app = express();
 const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
 const cors = require("cors");
+const swaggerUi = require("swagger-ui-express");
+const swaggerJsDoc = require("swagger-jsdoc");
 
-app.use(cors({
-  origin: ['http://localhost:3000',],
-  credentials: true
-}));
+const app = express();
+
+// CORS configuration
+app.use(
+    cors({
+      origin: [
+        "https://front-end-proyek-3.vercel.app", // URL frontend Anda
+        "https://proyek-3-api.vercel.app", // URL endpoint API yang perlu diakses
+        "http://localhost:8000",
+      ],
+      credentials: true, // Mengizinkan cookie dan header autentikasi
+      methods: ["GET", "POST", "PUT", "DELETE"], // Metode HTTP yang diizinkan
+      allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"], // Tambahkan header yang diperlukan
+    })
+);
+
+app.options("*", cors());
 
 app.use(express.json());
 app.use(cookieParser());
-app.use("/test", (req, res) => {
+app.use(bodyParser.urlencoded({ extended: true, limit: "700mb" }));
+
+// Test Route
+app.get("/test", (req, res) => {
   res.send("Hello world!");
 });
 
-app.use(bodyParser.urlencoded({ extended: true, limit: "700mb" }));
+// Swagger Configuration
+const swaggerOptions = {
+  swaggerDefinition: {
+    openapi: "3.0.0",
+    info: {
+      title: "Express API Documentation",
+      version: "1.0.0",
+      description: "API documentation for the Express.js application",
+      contact: {
+        name: "Developer Name",
+        email: "developer@example.com",
+      },
+    },
+    servers: [
+      {
+        url: "http://localhost:8000", // Swagger UI di localhost
+        description: "Local Server",
+      },
+      {
+        url: "https://proyek-3-api.vercel.app", // API production
+        description: "Production Server",
+      },
+    ],
+  },
+  apis: ["./controller/*.js"],
+};
 
-// config
+const swaggerDocs = swaggerJsDoc(swaggerOptions);
+
+// Swagger Middleware
+app.use("/api-docs", (req, res, next) => {
+  console.log("Swagger UI requested:", req.url); // Debug log
+  next();
+}, swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+
+// Environment Configuration
 if (process.env.NODE_ENV !== "PRODUCTION") {
   require("dotenv").config({
     path: "config/.env",
   });
 }
 
-// import routes
+// Import Routes
 const user = require("./controller/user");
 const shop = require("./controller/shop");
 const product = require("./controller/product");
@@ -48,7 +98,16 @@ app.use("/api/v2/coupon", coupon);
 app.use("/api/v2/payment", payment);
 app.use("/api/v2/withdraw", withdraw);
 
-// it's for ErrorHandling
+// Error Handling Middleware
 app.use(ErrorHandler);
+
+// Serve Frontend in Production
+if (process.env.NODE_ENV === "PRODUCTION") {
+  const path = require("path");
+  app.use(express.static(path.join(__dirname, "../frontend/build")));
+  app.get("*", (req, res) => {
+    res.sendFile(path.resolve(__dirname, "../frontend/build", "index.html"));
+  });
+}
 
 module.exports = app;
