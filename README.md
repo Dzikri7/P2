@@ -20,8 +20,6 @@ Aplikasi E-Commerce ini dibangun menggunakan teknologi MERN Stack (MongoDB, Expr
 - [Installation Backend](#installation-backend)
 - [Environment Variables](#environment-variables)
 - [Running the Application](#running-the-application)
-- [API Endpoints](#api-endpoints)
-- [Error Handling](#error-handling)
 
 ## Installation Frontend
 
